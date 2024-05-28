@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using ToDoMauiClient.Models;
 
@@ -23,10 +24,36 @@ public class RestDataService : IRestDataService
         };
     }
 
-    public Task<List<ToDo>> GetAllItemsAsync()
+    public async Task<List<ToDo>?> GetAllItemsAsync()
     {
-        throw new NotImplementedException();
-    }
+        var toDoList = new List<ToDo>();
+
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            Debug.WriteLine("----> No internet access");
+            return toDoList;
+        }
+
+        try
+        {
+            var response = await _httpClient.GetAsync($"{_url}/api/todo");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                toDoList = JsonSerializer.Deserialize<List<ToDo>>(content, _jsonSerializerOptions);
+            }
+            else
+            {
+                Debug.WriteLine("----> Unsuccessful HTTP  code");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Exception: {ex.Message}");
+        }
+
+        return toDoList;
+    } 
 
     public Task AddItemAsync(ToDo toDo)
     {
